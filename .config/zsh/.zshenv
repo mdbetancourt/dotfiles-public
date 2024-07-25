@@ -15,6 +15,13 @@ if [ -n "${ZSH_VERSION-}" ]; then
   # Do not change anything else in this file.
   # export ZDOTDIR=$HOME/.config/zsh
 
+  # Constant var definitions
+  export DOTFILES_PUBLIC_DIR=$HOME/.cfg/public
+  export DOTFILES_PRIVATE_DIR=$HOME/.cfg/private
+  export SSH_MASTER_KEY=$HOME/.ssh/private/master
+  export Z4H_FUNCTIONS=$ZDOTDIR/functions
+  export HISTFOLDER=$ZDOTDIR/history
+
   # set xdg paths
   export XDG_CACHE_HOME="$HOME/.cache"
   export XDG_CONFIG_HOME="$HOME/.config"
@@ -27,6 +34,7 @@ if [ -n "${ZSH_VERSION-}" ]; then
   [[ -o no_interactive && -z "${Z4H_BOOTSTRAPPING-}" ]] && return
   setopt no_rcs
   unset Z4H_BOOTSTRAPPING
+  [[ -n "${Z4H_SSH-}" ]] || export HISTFILE="$HISTFOLDER/zsh_history.${(%):-%m}"
 fi
 
 Z4H_URL="https://raw.githubusercontent.com/romkatv/zsh4humans/v5"

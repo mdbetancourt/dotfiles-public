@@ -2,27 +2,13 @@
 # shell customization and configuration (including exported environment
 # variables such as PATH) in this file or in files sourced from it.
 
-# Constant var definitions
-export DOTFILES_PUBLIC_DIR=$HOME/.cfg/public
-export DOTFILES_PRIVATE_DIR=$HOME/.cfg/private
-export SSH_MASTER_KEY=$HOME/.ssh/private/master
-# export ZDOTDIR=$HOME/.config/zsh # FROM .zshenv
-export Z4H_FUNCTIONS=$ZDOTDIR/functions
-export HISTFOLDER=$ZDOTDIR/history
-
-# set xdg paths
-# export XDG_CACHE_HOME="$HOME/.cache" # FROM .zshenv
-# export XDG_CONFIG_HOME="$HOME/.config" # FROM .zshenv
-# export XDG_DATA_HOME="$HOME/.local/share" # FROM .zshenv
-
-
 # Updates
 zstyle ':z4h:'                  auto-update            no
 zstyle ':z4h:'                  auto-update-days       28
 zstyle ':z4h:*'                 channel                testing
 
 # Autosuggestion
-zstyle ':z4h:autosuggestions'   forward-char           accept
+zstyle ':z4h:autosuggestions'   forward-char           partial-accept
 zstyle ':z4h:autosuggestions'   end-of-line            partial-accept
 zstyle ':z4h:fzf-complete'      recurse-dirs           no
 # zstyle ':z4h:fzf-dir-history'   fzf-bindings           tab:repeat
@@ -32,6 +18,8 @@ zstyle ':z4h:fzf-complete'      recurse-dirs           no
 # Shell title
 zstyle ':z4h:term-title:ssh'    precmd                 ${${${Z4H_SSH##*:}//\%/%%}:-%m}': %~'
 zstyle ':z4h:term-title:ssh'    preexec                ${${${Z4H_SSH##*:}//\%/%%}:-%m}': ${1//\%/%%}'
+# zstyle ':z4h:term-title:ssh' precmd  '%n@'${${${Z4H_SSH##*:}//\%/%%}:-%m}': %~'
+# zstyle ':z4h:term-title:ssh' preexec '%n@'${${${Z4H_SSH##*:}//\%/%%}:-%m}': ${1//\%/%%}'
 
 # Shell
 zstyle ':z4h:command-not-found' to-file                "$TTY"
@@ -55,12 +43,12 @@ zstyle ':completion:*:(ssh|scp|rdp):*:hosts' hosts
 zstyle :omz:plugins:ssh-agent      agent-forwarding             yes
 zstyle :omz:plugins:ssh-agent      identities                   $SSH_MASTER_KEY
 zstyle :omz:plugins:ssh-agent      lazy                         yes
-# if [[ -e $SSH_MASTER_KEY ]]; then
-zstyle ':z4h:ssh-agent:' start      yes
-zstyle ':z4h:ssh-agent:' extra-args -t 20h
-# else
-#   : ${GITSTATUS_AUTO_INSTALL:=0}
-# fi
+if [[ -e $SSH_MASTER_KEY ]]; then
+  zstyle ':z4h:ssh-agent:' start      yes
+  zstyle ':z4h:ssh-agent:' extra-args -t 20h
+else
+  : ${GITSTATUS_AUTO_INSTALL:=0}
+fi
 
 # Send these files over to the remote host when connecting over SSH to the
 # enabled hosts.
@@ -74,7 +62,7 @@ path+=(~/.bin ~/.local/bin $ZDOTDIR/bin)
 z4h install ohmyzsh/ohmyzsh || return
 z4h install romkatv/archive romkatv/zsh-prompt-benchmark
 
-z4h load   ohmyzsh/ohmyzsh/plugins/pyenv  # load a plugin
+# z4h load   ohmyzsh/ohmyzsh/plugins/pyenv  # load a plugin
 
 z4h init || return
 
@@ -93,7 +81,6 @@ if [[ ! -d "$HISTFOLDER" ]]; then
   mkdir -p "$HISTFOLDER"
 fi
 
-export HISTFILE=$HISTFOLDER/zsh_history
 export HISTSIZE=999999999
 export SAVEHIST=$HISTSIZE
 
@@ -116,15 +103,6 @@ zstyle    ':z4h:ssh:*' enable           yes
 zstyle    ':z4h:ssh:*' ssh-command      command ssh
 zstyle    ':z4h:ssh:*' send-extra-files '~/.config/htop/htoprc'
 zstyle -e ':z4h:ssh:*' retrieve-history 'reply=($HISTFOLDER/zsh_history.${(%):-%m}:$z4h_ssh_host)'
-
-# function z4h-ssh-configure() {
-#   (( z4h_ssh_enable )) || return 0
-#   local file
-#   for file in $HISTFOLDER/zsh_history.*:$z4h_ssh_host(N); do
-#     (( $+z4h_ssh_send_files[$file] )) && continue
-#     z4h_ssh_send_files[$file]='"$HISTFOLDER"/'${file:t}
-#   done
-# }
 
 # Disable some keys
 () {
@@ -156,6 +134,16 @@ z4h bindkey z4h-quote-prev-zword    Alt+Q
 z4h bindkey copy-prev-shell-word    Alt+C
 z4h bindkey undo Ctrl+/ Shift+Tab  # undo the last command line change
 z4h bindkey redo Alt+/             # redo the last undone command line change
+
+function skip-csi-sequence() {
+  local key
+  while read -sk key && (( $((#key)) < 0x40 || $((#key)) > 0x7E )); do
+    # empty body
+  done
+}
+
+zle -N skip-csi-sequence
+bindkey '\e[' skip-csi-sequence
 
 setopt ignore_eof
 
@@ -195,7 +183,7 @@ aliases[=]='noglob arith-eval'
 (( $+commands[rsync] )) && alias rsync='rsync -rz --info=FLIST,COPY,DEL,REMOVE,SKIP,SYMSAFE,MISC,NAME,PROGRESS,STATS'
 (( $+commands[exa]   )) && alias exa='exa -ga --group-directories-first --time-style=long-iso --color-scale'
 
-(( $+commands[xclip]   )) && alias pbcopy='xclip -selection clipboard -in -filter'
+(( $+commands[xclip]   )) && alias pbcopy='xclip -selection clipboard -in'
 (( $+commands[xclip]   )) && alias pbpaste='xclip -selection clipboard -out'
 
 (( $+commands[bat]   )) && alias cat='bat -pp --theme=TwoDark --color=always'
