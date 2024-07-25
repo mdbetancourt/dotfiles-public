@@ -19,6 +19,8 @@ if [ -n "${ZSH_VERSION-}" ]; then
   export XDG_CACHE_HOME="$HOME/.cache"
   export XDG_CONFIG_HOME="$HOME/.config"
   export XDG_DATA_HOME="$HOME/.local/share"
+  export XINITRC=$XDG_CONFIG_HOME/X11/xinitrc
+  export XSERVERRC=$XDG_CONFIG_HOME/X11/xserverrc
 
   : ${ZDOTDIR:=~}
   setopt no_global_rcs

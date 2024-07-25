@@ -13,6 +13,7 @@
 .config/*
 !.config/zsh
 .config/zsh/*
+!.config/nano
 !.config/zsh/bin
 !.config/zsh/functions
 !.config/zsh/.p10k.zsh
