@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Actualizar la lista de paquetes
+sudo pacman -Syu
+
+# Instalar los paquetes
+packages=(
+  docker
+  exa
+  bat
+  xclip
+  tree
+  rsync
+  unzip
+  tar
+  gzip  # gzip proporciona gunzip
+  unxz
+  unrar
+  pigz
+  pbzip2
+  nmap
+  tcptraceroute
+  traceroute
+)
+
+aur_packages=(
+  rustscan
+)
+
+# Utilizar 'yay' para instalar rustscan (normalmente no está en los repositorios oficiales)
+sudo pacman -S --needed yay
+
+# Instalar los paquetes restantes con Pacman
+sudo pacman -S --needed "${packages[@]}"
+yay -S --needed "${packages[@]}"
+
+# Habilitar y iniciar Docker
+sudo systemctl enable docker.service
+sudo systemctl start docker.service
+
+# Agregar al usuario al grupo 'docker'
+sudo usermod -aG docker $USER

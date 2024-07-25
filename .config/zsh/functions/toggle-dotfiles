@@ -1,0 +1,53 @@
+# No emulate zsh here because it calls reset-prompt.
+
+if (( ARGC == 0 )); then
+  case "${GIT_DIR-}" in
+    '')
+      export GIT_DIR=$DOTFILES_PUBLIC_DIR
+      export GIT_WORK_TREE=~
+    ;;
+    $DOTFILES_PUBLIC_DIR)
+      export GIT_DIR=$DOTFILES_PRIVATE_DIR
+      export GIT_WORK_TREE=~
+    ;;
+    *)
+      unset GIT_DIR
+      unset GIT_WORK_TREE
+    ;;
+  esac
+elif (( ARGC == 1 )); then
+  case "$1" in
+    public)
+      export GIT_DIR=$DOTFILES_PUBLIC_DIR
+      export GIT_WORK_TREE=~
+    ;;
+    private)
+      export GIT_DIR=$DOTFILES_PRIVATE_DIR
+      export GIT_WORK_TREE=~
+    ;;
+    '')
+      unset GIT_DIR
+      unset GIT_WORK_TREE
+    ;;
+    *)
+      print -ru2 -- "toggle-dotfiles: invalid argument: ${(qqq)1}"
+      return 1
+    ;;
+  esac
+else
+  print -ru2 -- "toggle-dotfiles: too many arguments"
+  return 1
+fi
+
+zle || return 0
+
+local f
+for f in precmd "${precmd_functions[@]}"; do
+  (( ${+functions[$f]} )) && "$f" &>/dev/null
+done
+
+if (( ${+functions[p10k]} )); then
+  p10k display -r
+else
+  zle .reset-prompt
+fi
