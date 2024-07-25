@@ -62,11 +62,13 @@ function -sync-dotfiles-repo() {
 
 {
   pushd -q ~ || return
-
+  local -x GIT_WORK_TREE=$HOME
   local -x GIT_DIR=$DOTFILES_PUBLIC_DIR
   -sync-dotfiles-repo || return
 
   GIT_DIR=$HOME/.cfg/private
+  GIT_WORK_TREE=$HOME
+
   local hist=${HISTFOLDER:-~}/zsh_history.${(%):-%m}
   local -U hist=($hist{,:*}(N))
   [[ -f ${HISTFILE:-} ]] && hist+=($HISTFILE)
