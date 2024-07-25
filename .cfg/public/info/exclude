@@ -9,13 +9,31 @@
 *
 
 # Excepciones: no ignorar estos archivos/directorios
+!.config
+.config/*
+!.config/zsh
+.config/zsh/*
 !.config/zsh/bin
 !.config/zsh/functions
 !.config/zsh/.p10k.zsh
 !.config/zsh/.zshenv
 !.config/zsh/.zshrc
+
 !.zshenv
+
+!.config/git
+.config/git/*
 !.config/git/config
 !.config/git/ignore
+
+!.ssh
+.ssh/*
 !.ssh/config
+
+!.cfg
+.cfg/*
+!.cfg/public
+.cfg/public/*
+!.cfg/public/info
+.cfg/public/info/*
 !.cfg/public/info/exclude
