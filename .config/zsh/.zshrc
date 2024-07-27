@@ -59,7 +59,7 @@ path+=(~/.bin ~/.local/bin $ZDOTDIR/bin)
 
 
 # Plugins installation
-z4h install ohmyzsh/ohmyzsh || return
+# z4h install ohmyzsh/ohmyzsh || return
 z4h install romkatv/archive romkatv/zsh-prompt-benchmark
 
 # z4h load   ohmyzsh/ohmyzsh/plugins/pyenv  # load a plugin
@@ -120,11 +120,9 @@ zstyle -e ':z4h:ssh:*' retrieve-history 'reply=($HISTFOLDER/zsh_history.${(%):-%
 }
 
 # Define key bindings.
-z4h bindkey z4h-backward-kill-word  Ctrl+Backspace     Ctrl+H
-z4h bindkey z4h-backward-kill-zword Ctrl+Alt+Backspace
+z4h bindkey z4h-backward-kill-word  Ctrl+Backspace    
+z4h bindkey z4h-backward-kill-zword Ctrl+Alt+Backspace   Ctrl+H
 z4h bindkey z4h-accept-line         Enter
-z4h bindkey z4h-backward-kill-word  Ctrl+Backspace
-z4h bindkey z4h-backward-kill-zword Ctrl+Alt+Backspace
 z4h bindkey z4h-cd-back             Alt+Left
 z4h bindkey z4h-cd-forward          Alt+Right
 z4h bindkey z4h-cd-up               Alt+Up
@@ -170,6 +168,7 @@ alias grep=grep_no_cr
 
 # Alias definitions
 alias ls="${aliases[ls]:-ls} -A"
+alias sudo="sudo -Es"
 # alias clear="z4h-clear-screen-soft-bottom"
 if [[ -n $commands[dircolors] && ${${:-ls}:c:A:t} != busybox* ]]; then
   alias ls="${aliases[ls]:-ls} --group-directories-first"
