@@ -43,12 +43,10 @@ zstyle ':completion:*:(ssh|scp|rdp):*:hosts' hosts
 zstyle :omz:plugins:ssh-agent      agent-forwarding             yes
 zstyle :omz:plugins:ssh-agent      identities                   $SSH_MASTER_KEY
 zstyle :omz:plugins:ssh-agent      lazy                         yes
-if [[ -e $SSH_MASTER_KEY ]]; then
-  zstyle ':z4h:ssh-agent:' start      yes
-  zstyle ':z4h:ssh-agent:' extra-args -t 20h
-else
-  : ${GITSTATUS_AUTO_INSTALL:=0}
-fi
+
+zstyle ':z4h:ssh-agent:' start      yes
+zstyle ':z4h:ssh-agent:' extra-args -t 20h
+
 
 # Send these files over to the remote host when connecting over SSH to the
 # enabled hosts.
@@ -60,7 +58,7 @@ path+=(~/.bin ~/.local/bin $ZDOTDIR/bin)
 
 # Plugins installation
 # z4h install ohmyzsh/ohmyzsh || return
-z4h install romkatv/archive romkatv/zsh-prompt-benchmark romkatv/gitstatus
+z4h install romkatv/archive romkatv/zsh-prompt-benchmark
 
 # z4h load   ohmyzsh/ohmyzsh/plugins/pyenv  # load a plugin
 
