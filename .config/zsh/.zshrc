@@ -168,7 +168,7 @@ alias grep=grep_no_cr
 
 # Alias definitions
 alias ls="${aliases[ls]:-ls} -A"
-alias sudo="sudo -Es"
+#alias sudo="sudo -Es"
 # alias clear="z4h-clear-screen-soft-bottom"
 if [[ -n $commands[dircolors] && ${${:-ls}:c:A:t} != busybox* ]]; then
   alias ls="${aliases[ls]:-ls} --group-directories-first"
