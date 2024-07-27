@@ -60,7 +60,7 @@ path+=(~/.bin ~/.local/bin $ZDOTDIR/bin)
 
 # Plugins installation
 # z4h install ohmyzsh/ohmyzsh || return
-z4h install romkatv/archive romkatv/zsh-prompt-benchmark
+z4h install romkatv/archive romkatv/zsh-prompt-benchmark romkatv/gitstatus
 
 # z4h load   ohmyzsh/ohmyzsh/plugins/pyenv  # load a plugin
 
