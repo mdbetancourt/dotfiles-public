@@ -1,4 +1,57 @@
-#!/bin/bash
+#!/bin/sh
+
+if '[' '-n' "${ZSH_VERSION-}" ']'; then
+  'emulate' 'sh' '-o' 'err_exit' '-o' 'no_unset'
+else
+  'set' '-ue'
+fi
+
+platform="$('command' 'uname' '-sm')"
+platform="$('printf' '%s' "$platform" | 'command' 'tr' '[A-Z]' '[a-z]')"
+
+case "$platform" in
+  'darwin arm64');;
+  'darwin x86_64');;
+  'linux aarch64');;
+  'linux armv6l');;
+  'linux armv7l');;
+  'linux armv8l');;
+  'linux x86_64');;
+  'linux i686');;
+  *)
+    >&2 'printf' '\033[33mz4h\033[0m: sorry, unsupported platform: \033[31m%s\033[0m\n' "$platform"
+    'exit' '1'
+  ;;
+esac
+
+if command -v 'curl' >'/dev/null' 2>&1; then
+  fetch='command curl -fsSLo'
+elif command -v 'wget' >'/dev/null' 2>&1; then
+  fetch='command wget -O'
+else
+  >&2 'printf' '\033[33mz4h\033[0m: please install \033[32mcurl\033[0m or \033[32mwget\033[0m\n'
+  'exit' '1'
+fi
+
+if ! command -v 'git' >'/dev/null' 2>&1; then
+  >&2 'printf' '\033[33mz4h\033[0m: please install \033[32mgit\033[0m\n'
+  'exit' '1'
+fi
+
+if '[' '!' '-d' "${HOME-}" ']'; then
+  >&2 'printf' '\033[33mz4h\033[0m: \033[1m$HOME\033[0m is not a directory\n'
+  'exit' '1'
+fi
+
+euid="$('command' 'id' '-u')"
+if '[' "$euid" '=' '0' ']'; then
+  home_ls="$('command' 'ls' '-ld' '--' "$HOME")"
+  home_owner="$('printf' '%s\n' "$home_ls" | 'command' 'awk' 'NR==1 {print $3}')"
+  if '[' "$home_owner" '!=' 'root' ']'; then
+    >&2 'printf' '\033[33mz4h\033[0m: please retry without \033[4;32msudo\033[0m\n'
+    'exit' '1'
+  fi
+fi
 
 # Repository directory
 repo_dir="$HOME/.cfg/public"
@@ -18,4 +71,8 @@ rm -f $HOME/{.zshrc,.zshenv,.p10k.zsh} 2>/dev/null
 git --work-tree=$HOME --git-dir="$repo_dir" checkout -f >/dev/null 2>&1
 
 # Bootstrap zsh
-Z4H_BOOTSTRAPPING=1 bash $HOME/.zshenv
+Z4H_BOOTSTRAPPING=1
+
+'set' '+ue'
+'set' '--'
+'.' $HOME/'.zshenv'
