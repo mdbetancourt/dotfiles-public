@@ -1,1 +1,13 @@
+#!/bin/bash
 
+# Clone repository
+git clone --bare https://github.com/mdbetancourt/dotfiles-public $HOME/.cfg/public
+
+# Delete zsh files
+rm $HOME/{.zshrc,.zshenv,.p10k.zsh}
+
+# Restore files
+git --work-tree=$HOME --git-dir=$HOME/.cfg/public reset --hard
+
+# Bootstrap zsh
+Z4H_BOOTSTRAPPING=1 bash $HOME/.zshenv
