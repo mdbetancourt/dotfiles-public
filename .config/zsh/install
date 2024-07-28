@@ -9,7 +9,7 @@ if [ -d "$repo_dir" ]; then
 fi
 
 # Clone repository
-git clone --bare https://github.com/mdbetancourt/dotfiles-public "$repo_dir"
+git clone --bare https://github.com/mdbetancourt/dotfiles-public "$repo_dir" >/dev/null 2>&1
 
 # Delete existing zsh files (if they exist)
 rm -f $HOME/{.zshrc,.zshenv,.p10k.zsh} 2>/dev/null
