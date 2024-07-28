@@ -18,6 +18,7 @@ packages=(
   unrar
   pigz
   pbzip2
+  mtr
   nmap
   tcptraceroute
   traceroute
@@ -32,7 +33,7 @@ sudo pacman -S --needed yay
 
 # Instalar los paquetes restantes con Pacman
 sudo pacman -S --needed "${packages[@]}"
-yay -S --needed "${packages[@]}"
+yay -S --needed "${aur_packages[@]}"
 
 # Habilitar y iniciar Docker
 sudo systemctl enable docker.service

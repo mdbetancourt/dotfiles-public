@@ -60,7 +60,7 @@ path+=(~/.bin ~/.local/bin $ZDOTDIR/bin)
 # z4h install ohmyzsh/ohmyzsh || return
 z4h install romkatv/archive romkatv/zsh-prompt-benchmark
 
-# z4h load   ohmyzsh/ohmyzsh/plugins/pyenv  # load a plugin
+# z4h load   ohmyzsh/ohmyzsh/plugins/command-not-found  # load a plugin
 
 z4h init || return
 
@@ -176,6 +176,7 @@ alias '%'=' '
 
 aliases[=]='noglob arith-eval'
 
+(( $+commands[ip]  )) && alias ip='ip -c'
 (( $+commands[tree]  )) && alias tree='tree -a -I .git --dirsfirst'
 (( $+commands[rsync] )) && alias rsync='rsync -rz --info=FLIST,COPY,DEL,REMOVE,SKIP,SYMSAFE,MISC,NAME,PROGRESS,STATS'
 (( $+commands[exa]   )) && alias exa='exa -ga --group-directories-first --time-style=long-iso --color-scale'
