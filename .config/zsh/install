@@ -1,13 +1,18 @@
 #!/bin/bash
 
-# Clone repository
-git clone --bare https://github.com/mdbetancourt/dotfiles-public $HOME/.cfg/public
+# Clone repository if it doesn't exist
+if [ ! -d "$HOME/.cfg/public" ]; then
+    git clone --bare https://github.com/mdbetancourt/dotfiles-public $HOME/.cfg/public
+else
+    # If the repository exists, fetch the latest changes
+    git --git-dir=$HOME/.cfg/public fetch
+fi
 
-# Delete zsh files
-rm $HOME/{.zshrc,.zshenv,.p10k.zsh}
+# Delete existing zsh files (if they exist)
+rm -f $HOME/{.zshrc,.zshenv,.p10k.zsh} 2>/dev/null
 
-# Restore files
-git --work-tree=$HOME --git-dir=$HOME/.cfg/public reset --hard
+# Checkout files (force overwrite)
+git --work-tree=$HOME --git-dir=$HOME/.cfg/public checkout -f 2>/dev/null
 
 # Bootstrap zsh
 Z4H_BOOTSTRAPPING=1 bash $HOME/.zshenv
