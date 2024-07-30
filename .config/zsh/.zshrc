@@ -149,7 +149,7 @@ fi
 
 zle -N sudo-previous
 zle -N sudo-escalate
-z4h bindkey run-help Ctrl+H
+# z4h bindkey run-help Ctrl+H
 z4h bindkey sudo-previous Ctrl+E
 
 function grep_no_cr() {
