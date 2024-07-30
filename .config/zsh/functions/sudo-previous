@@ -1,0 +1,13 @@
+if [[ -z "$BUFFER" ]]; then
+  zle up-history         # If there is no text use last executed command
+  BUFFER="sudo $BUFFER"
+  CURSOR=$CURSOR+5
+elif [[ "$BUFFER" == sudo\ * ]]; then
+  BUFFER="${BUFFER:5}"
+  CURSOR=$CURSOR-5
+else
+  BUFFER="sudo $BUFFER"
+  CURSOR=$CURSOR+5
+fi
+
+

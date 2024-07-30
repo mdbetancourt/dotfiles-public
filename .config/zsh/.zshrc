@@ -26,7 +26,7 @@ zstyle ':z4h:command-not-found' to-file                "$TTY"
 zstyle ':z4h:'                  term-shell-integration yes
 zstyle ':z4h:'                  propagate-cwd          yes
 zstyle ':z4h:'                  prompt-height          4
-zstyle ':z4h:'                  prompt-at-bottom       no
+zstyle ':z4h:'                  prompt-at-bottom       yes
 
 # Search
 zstyle ':zle:up-line-or-beginning-search'    leave-cursor       no
@@ -60,12 +60,11 @@ path+=(~/.bin ~/.local/bin $ZDOTDIR/bin)
 # z4h install ohmyzsh/ohmyzsh || return
 z4h install romkatv/archive romkatv/zsh-prompt-benchmark
 
-# z4h load   ohmyzsh/ohmyzsh/plugins/command-not-found  # load a plugin
-
 z4h init || return
 
 setopt glob_dots magic_equal_subst no_multi_os no_local_loops
 setopt rm_star_silent rc_quotes glob_star_short
+setopt HIST_SAVE_NO_DUPS         # Do not write a duplicate event to the history file.
 
 fpath=($Z4H/romkatv/archive $fpath)
 
@@ -119,14 +118,14 @@ zstyle -e ':z4h:ssh:*' retrieve-history 'reply=($HISTFOLDER/zsh_history.${(%):-%
 
 # Define key bindings.
 z4h bindkey z4h-backward-kill-word  Ctrl+Backspace    
-z4h bindkey z4h-backward-kill-zword Ctrl+Alt+Backspace   Ctrl+H
+z4h bindkey z4h-backward-kill-zword Ctrl+Alt+Backspace
 z4h bindkey z4h-accept-line         Enter
 z4h bindkey z4h-cd-back             Alt+Left
 z4h bindkey z4h-cd-forward          Alt+Right
 z4h bindkey z4h-cd-up               Alt+Up
 z4h bindkey z4h-fzf-dir-history     Alt+Down
 z4h bindkey z4h-exit                Ctrl+D
-z4h bindkey z4h-quote-prev-zword    Alt+Q
+z4h bindkey push-input              Ctrl+Q
 z4h bindkey copy-prev-shell-word    Alt+C
 z4h bindkey undo Ctrl+/ Shift+Tab  # undo the last command line change
 z4h bindkey redo Alt+/             # redo the last undone command line change
@@ -147,6 +146,11 @@ if (( $+functions[toggle-dotfiles] )); then
   zle -N toggle-dotfiles
   z4h bindkey toggle-dotfiles Ctrl+P
 fi
+
+zle -N sudo-previous
+zle -N sudo-escalate
+z4h bindkey run-help Ctrl+H
+z4h bindkey sudo-previous Ctrl+E
 
 function grep_no_cr() {
   emulate -L zsh -o pipe_fail

@@ -13,14 +13,14 @@
 .config/*
 !.config/nano
 !.config/zsh
-!.config/zsh/*
+!.config/zsh/**
 .config/zsh/history
 .config/zsh/*.zwc
 
 !.zshenv
 
 !.config/git
-.config/git/*
+.config/git/**
 !.config/git/config
 !.config/git/ignore
 
@@ -31,7 +31,7 @@
 !.cfg
 .cfg/*
 !.cfg/public
-.cfg/public/*
+.cfg/public/**
 !.cfg/public/info
-.cfg/public/info/*
+.cfg/public/info/**
 !.cfg/public/info/exclude
