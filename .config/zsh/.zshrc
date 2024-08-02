@@ -39,14 +39,13 @@ zstyle ':completion:*:ssh:argument-1:'       tag-order          hosts users
 zstyle ':completion:*:scp:argument-rest:'    tag-order          hosts files users
 zstyle ':completion:*:(ssh|scp|rdp):*:hosts' hosts
 
-# SSH Agent configuration
-zstyle :omz:plugins:ssh-agent      agent-forwarding             yes
-zstyle :omz:plugins:ssh-agent      identities                   $SSH_MASTER_KEY
-zstyle :omz:plugins:ssh-agent      lazy                         yes
+if [[ -z "$Z4H_SSH" ]]; then
+  zstyle ':z4h:ssh-agent:' start    yes
+else
+  zstyle ':z4h:ssh-agent:' start    no # Not starting in remote host in order to works ssh agent
+fi
 
-zstyle ':z4h:ssh-agent:' start      yes
 zstyle ':z4h:ssh-agent:' extra-args -t 20h
-
 
 # Send these files over to the remote host when connecting over SSH to the
 # enabled hosts.
@@ -232,3 +231,4 @@ fi
 
 z4h source -c -- $ZDOTDIR/.zshrc-private
 z4h compile -- $ZDOTDIR/{.zshenv,.zprofile,.zshrc,.zlogin,.zlogout}
+eval "$(warp-cli generate-completions zsh)"
