@@ -1,29 +1,43 @@
 %YAML 1.3
 ---
 - Rule:
-  - Modifiers: Control
   - Key: [Forward Button, pressed]
   - Or:
     - Rule:
+      - Modifiers: Control
       - Process: guake
       - KeyPress:
         - [Control_L, Shift_L, v]
         - click
-    - KeyPress:
-      - [Control_L, v]
-      - click
+    - Rule:
+      - Modifiers: Control
+      - KeyPress:
+        - [Control_L, v]
+        - click
+    - Rule:
+      - Process: chrome
+      - KeyPress:
+        - [Alt_L, KP_Right]
+        - click
 - Rule:
-  - Modifiers: Control
   - Key: [Back Button, pressed]
   - Or:
     - Rule:
+      - Modifiers: Control
       - Process: guake
       - KeyPress:
         - [Control_L, Shift_L, c]
         - click
-    - KeyPress:
-      - [Control_L, c]
-      - click
+    - Rule:
+      - Modifiers: Control
+      - KeyPress:
+        - [Control_L, c]
+        - click
+    - Rule:
+      - Process: chrome
+      - KeyPress:
+        - [Alt_L, KP_Left]
+        - click
 - Rule:
   - MouseGesture: Mouse Up
   - KeyPress:
