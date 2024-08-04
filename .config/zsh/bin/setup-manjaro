@@ -6,7 +6,6 @@ sudo pacman -Syu
 # Instalar los paquetes
 packages=(
   docker
-  exa
   bat
   xclip
   tree
@@ -26,6 +25,7 @@ packages=(
 
 aur_packages=(
   rustscan
+  ruby-colorls
 )
 
 # Utilizar 'yay' para instalar rustscan (normalmente no está en los repositorios oficiales)

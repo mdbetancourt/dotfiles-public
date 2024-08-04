@@ -168,7 +168,7 @@ compdef grep_no_cr=grep
 alias grep=grep_no_cr
 
 # Alias definitions
-alias ls="${aliases[ls]:-ls} -A"
+alias ls="colorls"
 #alias sudo="sudo -Es"
 # alias clear="z4h-clear-screen-soft-bottom"
 if [[ -n $commands[dircolors] && ${${:-ls}:c:A:t} != busybox* ]]; then
