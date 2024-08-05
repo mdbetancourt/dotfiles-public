@@ -20,14 +20,23 @@
 [[ ! -o 'no_brace_expand' ]] || p10k_config_opts+=('no_brace_expand')
 'builtin' 'setopt' 'no_aliases' 'no_sh_glob' 'brace_expand'
 
+typeset -A ZSH_HIGHLIGHT_STYLES
+
 () {
   emulate -L zsh -o extended_glob
 
-  local SUCCESS_COLOR=71
-  local ERROR_COLOR=1
-  local PRIMARY_COLOR=93
-  local WHITE_COLOR=255
-  local BLACK_COLOR=238
+  local SUCCESS_COLOR='#5faf5f'
+  local WARNING_COLOR='#df9c3b'
+  local ERROR_COLOR='#c37372'
+  local PRIMARY_COLOR='#7842f5'
+  local SECONDARY_COLOR='#5f87af'
+  local WHITE_COLOR='#eeeeee'
+  local BLACK_COLOR='#444444'
+
+  HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_NOT_FOUND="fg=${ERROR_COLOR},underline"
+  HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND="fg=${SUCCESS_COLOR},bold,underline"
+  ZSH_HIGHLIGHT_STYLES[unknown-token]="fg=${ERROR_COLOR},bold"
+  ZSH_HIGHLIGHT_STYLES[arg0]="fg=${SUCCESS_COLOR}"
 
   # Unset all configuration options. This allows you to apply configuration changes without
   # restarting zsh. Edit ~/.p10k.zsh and type `source ~/.p10k.zsh`.
@@ -368,10 +377,10 @@
 
   #####################################[ vcs: git status ]######################################
   # Version control background colors.
-  typeset -g POWERLEVEL9K_VCS_CLEAN_BACKGROUND=2
-  typeset -g POWERLEVEL9K_VCS_MODIFIED_BACKGROUND=3
-  typeset -g POWERLEVEL9K_VCS_UNTRACKED_BACKGROUND=3
-  typeset -g POWERLEVEL9K_VCS_CONFLICTED_BACKGROUND=1
+  typeset -g POWERLEVEL9K_VCS_CLEAN_BACKGROUND='#aed686'
+  typeset -g POWERLEVEL9K_VCS_MODIFIED_BACKGROUND='#d7af87'
+  typeset -g POWERLEVEL9K_VCS_UNTRACKED_BACKGROUND='#d7af87'
+  typeset -g POWERLEVEL9K_VCS_CONFLICTED_BACKGROUND=$WARNING_COLOR
   typeset -g POWERLEVEL9K_VCS_LOADING_BACKGROUND=8
 
   # Branch icon. Set this parameter to '\UE0A0 ' for the popular Powerline branch icon.
@@ -436,13 +445,13 @@
       # Otherwise show the first 12 … the last 12.
       # Tip: To always show tag name in full without truncation, delete the next line.
       (( $#tag > 32 )) && tag[13,-13]="…"  # <-- this line
-      res+="${meta}#${clean}${tag//\%/%%}"
+      res+="${clean}${clean} ${tag//\%/%%}"
     fi
 
     # Display the current Git commit if there is no branch and no tag.
     # Tip: To always display the current Git commit, delete the next line.
     [[ -z $VCS_STATUS_LOCAL_BRANCH && -z $VCS_STATUS_TAG ]] &&  # <-- this line
-      res+="${meta}@${clean}${VCS_STATUS_COMMIT[1,8]}"
+      res+="${clean}${clean} ${VCS_STATUS_COMMIT[1,8]}"
 
     # Show tracking branch name if it differs from local branch.
     if [[ -n ${VCS_STATUS_REMOTE_BRANCH:#$VCS_STATUS_LOCAL_BRANCH} ]]; then
@@ -569,8 +578,8 @@
 
   ###################[ command_execution_time: duration of the last command ]###################
   # Execution time color.
-  typeset -g POWERLEVEL9K_COMMAND_EXECUTION_TIME_FOREGROUND=255
-  typeset -g POWERLEVEL9K_COMMAND_EXECUTION_TIME_BACKGROUND=67
+  typeset -g POWERLEVEL9K_COMMAND_EXECUTION_TIME_FOREGROUND=$WHITE_COLOR
+  typeset -g POWERLEVEL9K_COMMAND_EXECUTION_TIME_BACKGROUND=$SECONDARY_COLOR
   # Show duration of the last command if takes at least this many seconds.
   typeset -g POWERLEVEL9K_COMMAND_EXECUTION_TIME_THRESHOLD=3
   # Show this many fractional digits. Zero means round to seconds.

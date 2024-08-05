@@ -87,10 +87,6 @@ export SAVEHIST=$HISTSIZE
   done
 }
 
-function md() { [[ $# == 1 ]] && mkdir -p -- "$1" && cd -- "$1" }
-
-compdef _directories md
-compdef _default     open
 
 # Define named directories: ~w <=> Windows home directory on WSL.
 [[ -z $z4h_win_home ]] || hash -d w=$z4h_win_home
@@ -165,12 +161,18 @@ function grep_no_cr() {
   fi
 }
 compdef grep_no_cr=grep
+compdef _lsd lsd
+function md() { [[ $# == 1 ]] && mkdir -p -- "$1" && cd -- "$1" }
+
+compdef _directories md
+compdef _default     open
+
 alias grep=grep_no_cr
 
 # Alias definitions
-alias ls="colorls"
+alias ls="lsd"
 #alias sudo="sudo -Es"
-# alias clear="z4h-clear-screen-soft-bottom"
+alias clear="z4h-clear-screen-soft-bottom"
 if [[ -n $commands[dircolors] && ${${:-ls}:c:A:t} != busybox* ]]; then
   alias ls="${aliases[ls]:-ls} --group-directories-first"
 fi
@@ -232,3 +234,4 @@ fi
 z4h source -c -- $ZDOTDIR/.zshrc-private
 z4h compile -- $ZDOTDIR/{.zshenv,.zprofile,.zshrc,.zlogin,.zlogout}
 eval "$(warp-cli generate-completions zsh)"
+source $ZDOTDIR/.p10k.zsh

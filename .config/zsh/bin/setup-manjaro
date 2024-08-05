@@ -18,6 +18,7 @@ packages=(
   pigz
   pbzip2
   trippy
+  lsd
   nmap
   tcptraceroute
   traceroute
@@ -25,7 +26,6 @@ packages=(
 
 aur_packages=(
   rustscan
-  ruby-colorls
 )
 
 # Utilizar 'yay' para instalar rustscan (normalmente no está en los repositorios oficiales)
