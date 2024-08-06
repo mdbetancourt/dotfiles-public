@@ -3,17 +3,20 @@
 # variables such as PATH) in this file or in files sourced from it.
 
 # Updates
-zstyle ':z4h:'                  auto-update            no
-zstyle ':z4h:'                  auto-update-days       28
-zstyle ':z4h:*'                 channel                testing
+zstyle ':z4h:'                                  auto-update            no
+zstyle ':z4h:'                                  auto-update-days       28
+zstyle ':z4h:*'                                 channel                dev
+zstyle ':z4h:zsh-syntax-highlighting'           channel                stable
 
 # Autosuggestion
 zstyle ':z4h:autosuggestions'   forward-char           partial-accept
 zstyle ':z4h:autosuggestions'   end-of-line            partial-accept
 zstyle ':z4h:fzf-complete'      recurse-dirs           no
+zstyle ':z4h:*' fzf-flags --color='pointer:#7842f5'
 # zstyle ':z4h:fzf-dir-history'   fzf-bindings           tab:repeat
 # zstyle ':z4h:fzf-complete'      fzf-bindings           tab:repeat
 # zstyle ':z4h:cd-down'           fzf-bindings           tab:repeat
+
 
 # Shell title
 zstyle ':z4h:term-title:ssh'    precmd                 ${${${Z4H_SSH##*:}//\%/%%}:-%m}': %~'
@@ -35,9 +38,21 @@ zstyle ':zle:down-line-or-beginning-search'  leave-cursor       no
 # Completion config
 zstyle ':completion:*'                       sort               false
 zstyle ':completion:*:ls:*'                  list-dirs-first    true
+
+filter_hosts() {
+  reply=(${(@)${(@M)${(f)"$(cat ~/.ssh/config.d/hosts.ssh)"}:#*Host *}#*Host })
+}
+
 zstyle ':completion:*:ssh:argument-1:'       tag-order          hosts users
 zstyle ':completion:*:scp:argument-rest:'    tag-order          hosts files users
-zstyle ':completion:*:(ssh|scp|rdp):*:hosts' hosts
+zstyle -e ':completion:*:(ssh|scp|rdp):*:hosts' hosts filter_hosts
+
+
+
+# Enable direnv to automatically source .envrc files.
+zstyle ':z4h:direnv'         enable 'yes'
+# # Show "loading" and "unloading" notifications from direnv.
+zstyle ':z4h:direnv:success' notify 'yes'
 
 if [[ -z "$Z4H_SSH" ]]; then
   zstyle ':z4h:ssh-agent:' start    yes
@@ -56,15 +71,14 @@ path+=(~/.bin ~/.local/bin $ZDOTDIR/bin)
 
 
 # Plugins installation
-# z4h install ohmyzsh/ohmyzsh || return
-z4h install romkatv/archive romkatv/zsh-prompt-benchmark
+# z4h install sunlei/zsh-ssh || return
+z4h install romkatv/archive romkatv/zsh-prompt-benchmark 
 
 z4h init || return
 
 setopt glob_dots magic_equal_subst no_multi_os no_local_loops
 setopt rm_star_silent rc_quotes glob_star_short
 setopt HIST_SAVE_NO_DUPS         # Do not write a duplicate event to the history file.
-
 fpath=($Z4H/romkatv/archive $fpath)
 
 # Activate helpers functions
@@ -93,7 +107,6 @@ export SAVEHIST=$HISTSIZE
 
 zstyle    ':z4h:ssh:*' enable           yes
 zstyle    ':z4h:ssh:*' ssh-command      command ssh
-zstyle    ':z4h:ssh:*' send-extra-files '~/.config/htop/htoprc'
 zstyle -e ':z4h:ssh:*' retrieve-history 'reply=($HISTFOLDER/zsh_history.${(%):-%m}:$z4h_ssh_host)'
 
 # Disable some keys
@@ -170,16 +183,14 @@ compdef _default     open
 alias grep=grep_no_cr
 
 # Alias definitions
-alias ls="lsd"
-#alias sudo="sudo -Es"
 alias clear="z4h-clear-screen-soft-bottom"
 if [[ -n $commands[dircolors] && ${${:-ls}:c:A:t} != busybox* ]]; then
   alias ls="${aliases[ls]:-ls} --group-directories-first"
 fi
-alias '$'=' '
-alias '%'=' '
+# alias '$'=' '
+# alias '%'=' '
 
-aliases[=]='noglob arith-eval'
+# aliases[=]='noglob arith-eval'
 
 (( $+commands[ip]  )) && alias ip='ip -c'
 (( $+commands[tree]  )) && alias tree='tree -a -I .git --dirsfirst'
@@ -190,6 +201,7 @@ aliases[=]='noglob arith-eval'
 (( $+commands[xclip]   )) && alias pbpaste='xclip -selection clipboard -out'
 
 (( $+commands[bat]   )) && alias cat='bat -pp --theme=TwoDark --color=always'
+(( $+commands[lsd]   )) && alias ls='lsd'
 (( $+commands[fzf]   )) && alias fzf="fzf --preview='bat -pp --theme=TwoDark --color=always {}'"
 
 if [[ -v commands[xclip] && -n $DISPLAY ]]; then
@@ -233,5 +245,6 @@ fi
 
 z4h source -c -- $ZDOTDIR/.zshrc-private
 z4h compile -- $ZDOTDIR/{.zshenv,.zprofile,.zshrc,.zlogin,.zlogout}
-eval "$(warp-cli generate-completions zsh)"
+(( $+commands[warp-cli]   )) && eval "$(warp-cli generate-completions zsh)"
+
 source $ZDOTDIR/.p10k.zsh
