@@ -97,7 +97,7 @@ export SAVEHIST=$HISTSIZE
 () {
   local hist
   for hist in $HISTFOLDER/zsh_history*~$HISTFILE(N); do
-    fc -RI $hist
+    fc -R $hist
   done
 }
 

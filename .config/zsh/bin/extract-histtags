@@ -1,0 +1,29 @@
+#!/bin/zsh
+
+history_lines=("${(f)"$(<$1)"}")
+
+grouped_lines=()
+current_line=""
+
+for line in "${history_lines[@]}"; do
+  if [[ $line =~ "^:[0-9 ]+:[0-9];" ]]; then
+    grouped_lines+=("$current_line")
+    current_line=$line
+  else
+    current_line+=$'\n'
+    current_line+=$line
+  fi
+done
+grouped_lines+=("$current_line")
+
+typeset -A tagged_lines
+
+for line in "${grouped_lines[@]}"; do
+  if [[ $line =~ \#([a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+)$ ]]; then
+    tag="${match}"
+    tagged_lines[$tag]=$line
+  fi
+done
+
+# Mostrar los tags únicos (opcional)
+print -lr "${(@v)tagged_lines}"
