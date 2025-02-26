@@ -12,7 +12,7 @@ zstyle ':z4h:zsh-syntax-highlighting'           channel                stable
 zstyle ':z4h:autosuggestions'   forward-char           partial-accept
 zstyle ':z4h:autosuggestions'   end-of-line            partial-accept
 zstyle ':z4h:fzf-complete'      recurse-dirs           no
-zstyle ':z4h:*' fzf-flags --color='pointer:#7842f5'
+zstyle ':z4h:fzf-history' fzf-flags --color='pointer:#7842f5'
 # zstyle ':z4h:fzf-dir-history'   fzf-bindings           tab:repeat
 # zstyle ':z4h:fzf-complete'      fzf-bindings           tab:repeat
 # zstyle ':z4h:cd-down'           fzf-bindings           tab:repeat
@@ -125,7 +125,7 @@ zstyle -e ':z4h:ssh:*' retrieve-history 'reply=($HISTFOLDER/zsh_history.${(%):-%
 }
 
 # Define key bindings.
-z4h bindkey z4h-backward-kill-word  Ctrl+Backspace    
+z4h bindkey z4h-backward-kill-word  Ctrl+Backspace
 z4h bindkey z4h-backward-kill-zword Ctrl+Alt+Backspace
 z4h bindkey z4h-accept-line         Enter
 z4h bindkey z4h-cd-back             Alt+Left
@@ -192,7 +192,17 @@ fi
 
 # aliases[=]='noglob arith-eval'
 
-(( $+commands[ip]  )) && alias ip='ip -c'
+#(( $+commands[ip]  )) && alias ip='ip -c'
+ip() {
+  if [ -t 1 ]; then
+    # stdout is connected to TTY
+    command ip -c "$@"
+  else
+    # if pipe or redirection
+    command ip "$@"
+  fi
+}
+
 (( $+commands[tree]  )) && alias tree='tree -a -I .git --dirsfirst'
 (( $+commands[rsync] )) && alias rsync='rsync -rz --info=FLIST,COPY,DEL,REMOVE,SKIP,SYMSAFE,MISC,NAME,PROGRESS,STATS'
 (( $+commands[exa]   )) && alias exa='exa -ga --group-directories-first --time-style=long-iso --color-scale'
@@ -200,7 +210,7 @@ fi
 (( $+commands[xclip]   )) && alias pbcopy='xclip -selection clipboard -in'
 (( $+commands[xclip]   )) && alias pbpaste='xclip -selection clipboard -out'
 
-(( $+commands[bat]   )) && alias cat='bat -pp --theme=TwoDark --color=always'
+(( $+commands[bat]   )) && alias cat='bat -pp --theme=TwoDark --color=auto'
 (( $+commands[lsd]   )) && alias ls='lsd'
 (( $+commands[fzf]   )) && alias fzf="fzf --preview='bat -pp --theme=TwoDark --color=always {}'"
 
@@ -248,3 +258,10 @@ z4h compile -- $ZDOTDIR/{.zshenv,.zprofile,.zshrc,.zlogin,.zlogout}
 (( $+commands[warp-cli]   )) && eval "$(warp-cli generate-completions zsh)"
 
 source $ZDOTDIR/.p10k.zsh
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f "$HOME/.apps/.google-cloud-sdk/path.zsh.inc" ]; then . "$HOME/.apps/.google-cloud-sdk/path.zsh.inc"; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f "$HOME/.apps/.google-cloud-sdk/completion.zsh.inc" ]; then . "$HOME/.apps/.google-cloud-sdk/completion.zsh.inc"; fi
+
