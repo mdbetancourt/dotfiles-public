@@ -5,7 +5,7 @@
 
 # --- Configuration ---
 # Repository URL
-repo_url="https://github.com/mdbetancourt/dotfiles-public"
+repo_url="git@github.com:mdbetancourt/dotfiles-public.git"
 # Directory to store the bare repository
 repo_dir="$HOME/.cfg/public"
 # Files in $HOME managed by this repository
