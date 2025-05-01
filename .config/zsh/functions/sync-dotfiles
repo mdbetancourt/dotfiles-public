@@ -151,7 +151,7 @@ fi
   # --- Sync Private Repo ---
   local private_repo_dir="$HOME/.cfg/private" # Define private repo path
   # Check if private repo directory exists
-  if [[ -d "$private_repo_repo_dir" ]]; then # Corrected variable name here
+  if [[ -d "$private_repo_dir" ]]; then # Corrected variable name here
     print -Pr -- "%F{yellow}sync-dotfiles%f: --- Syncing Private Dotfiles ---" >&2
 
     # --- History Handling (Specific to Private Repo) ---
