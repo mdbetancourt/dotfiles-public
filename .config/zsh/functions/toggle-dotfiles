@@ -55,7 +55,8 @@ else
   return 1
 fi
 
-# --- Apply target state ---
+# --- Apply target state and store message ---
+local message=""
 case "$target_state" in
   public)
     if [[ -z "$DOTFILES_PUBLIC_DIR" ]]; then
@@ -64,7 +65,7 @@ case "$target_state" in
     fi
     export GIT_DIR="$DOTFILES_PUBLIC_DIR"
     export GIT_WORK_TREE="$HOME"
-    print -P -- "%F{green}Dotfiles context set to: public ($GIT_DIR)%f"
+    message="%F{green}Dotfiles context set to: public ($GIT_DIR)%f"
     ;;
   private)
     if [[ -z "$DOTFILES_PRIVATE_DIR" ]]; then
@@ -73,17 +74,17 @@ case "$target_state" in
     fi
     export GIT_DIR="$DOTFILES_PRIVATE_DIR"
     export GIT_WORK_TREE="$HOME"
-    print -P -- "%F{blue}Dotfiles context set to: private ($GIT_DIR)%f"
+    message="%F{blue}Dotfiles context set to: private ($GIT_DIR)%f"
     ;;
   '')
     # Unset the variables
     unset GIT_DIR
     unset GIT_WORK_TREE
-    print -P -- "%F{yellow}Dotfiles context unset.%f"
+    message="%F{yellow}Dotfiles context unset.%f"
     ;;
 esac
 
-# --- Update prompt if interactive ---
+# --- Update prompt if interactive and print message ---
 # Check if ZLE is active (indicates interactive shell)
 if zle; then
   # Run precmd hooks to allow prompt themes (like p10k) to react to the change.
@@ -102,6 +103,18 @@ if zle; then
   else
     # Fallback to the standard ZLE prompt reset widget.
     zle .reset-prompt
+  fi
+
+  # Print the message *after* the prompt redraw.
+  # This should place the message below the newly drawn prompt,
+  # preventing it from being immediately overwritten.
+  if [[ -n "$message" ]]; then
+    print -P -- "$message"
+  fi
+else
+  # Not in ZLE (e.g., script execution), print message immediately.
+  if [[ -n "$message" ]]; then
+    print -P -- "$message"
   fi
 fi
 
