@@ -1,6 +1,12 @@
-# If the buffer is empty, load the last executed command from history.
+# If the buffer is empty, load the last executed command from history and prepend 'sudo '.
 if [[ -z "$BUFFER" ]]; then
-  zle up-history
+  zle up-history # Load the last command into BUFFER
+  # Check if history loading was successful (BUFFER is no longer empty)
+  if [[ -n "$BUFFER" ]]; then
+    BUFFER="sudo $BUFFER"
+    # Adjust cursor position. Add 5 for "sudo ".
+    CURSOR=$((CURSOR + 5))
+  fi
 # If the buffer contains exactly 'sudo', clear the buffer.
 # This prevents 'sudo' from becoming 'sudo sudo'.
 elif [[ "$BUFFER" == sudo ]]; then
