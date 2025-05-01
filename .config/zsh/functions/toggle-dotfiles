@@ -1,53 +1,108 @@
-# No emulate zsh here because it calls reset-prompt.
+# Toggles the GIT_DIR and GIT_WORK_TREE environment variables between
+# public dotfiles, private dotfiles, and unset states.
+# Updates the prompt accordingly.
+# Usage: toggle-dotfiles [public|private|'']
 
+emulate -L zsh -o err_exit # Local scope, exit on error within function
+
+local target_state=''
+local usage="Usage: toggle-dotfiles [public|private|'']"
+local current_git_dir="${GIT_DIR-}" # Use local var to avoid modifying global state prematurely
+
+# --- Determine target state ---
 if (( ARGC == 0 )); then
-  case "${GIT_DIR-}" in
+  # No arguments: Cycle through states '', public, private
+  case "$current_git_dir" in
     '')
-      export GIT_DIR=$DOTFILES_PUBLIC_DIR
-      export GIT_WORK_TREE=~
-    ;;
-    $DOTFILES_PUBLIC_DIR)
-      export GIT_DIR=$DOTFILES_PRIVATE_DIR
-      export GIT_WORK_TREE=~
-    ;;
+      # Currently unset, move to public
+      target_state='public'
+      ;;
+    "$DOTFILES_PUBLIC_DIR")
+      # Currently public, move to private (if defined)
+      if [[ -n "$DOTFILES_PRIVATE_DIR" ]]; then
+        target_state='private'
+      else
+        # No private dir defined, cycle back to unset
+        target_state=''
+      fi
+      ;;
+    "$DOTFILES_PRIVATE_DIR")
+      # Currently private, move to unset
+      target_state=''
+      ;;
     *)
-      unset GIT_DIR
-      unset GIT_WORK_TREE
-    ;;
+      # Unknown state, likely set externally. Reset to unset.
+      print -Pru2 -- "%F{yellow}toggle-dotfiles: Warning: Unknown GIT_DIR value '$current_git_dir'. Unsetting.%f"
+      target_state=''
+      ;;
   esac
 elif (( ARGC == 1 )); then
+  # One argument: Set to specified state
   case "$1" in
-    public)
-      export GIT_DIR=$DOTFILES_PUBLIC_DIR
-      export GIT_WORK_TREE=~
-    ;;
-    private)
-      export GIT_DIR=$DOTFILES_PRIVATE_DIR
-      export GIT_WORK_TREE=~
-    ;;
-    '')
-      unset GIT_DIR
-      unset GIT_WORK_TREE
-    ;;
+    public|private|'')
+      target_state="$1"
+      ;;
     *)
-      print -ru2 -- "toggle-dotfiles: invalid argument: ${(qqq)1}"
+      print -Pru2 -- "%F{red}toggle-dotfiles: Invalid argument: ${(qqq)1}%f"
+      print -ru2 -- "$usage"
       return 1
-    ;;
+      ;;
   esac
 else
-  print -ru2 -- "toggle-dotfiles: too many arguments"
+  # Too many arguments
+  print -Pru2 -- "%F{red}toggle-dotfiles: Too many arguments.%f"
+  print -ru2 -- "$usage"
   return 1
 fi
 
-zle || return 0
+# --- Apply target state ---
+case "$target_state" in
+  public)
+    if [[ -z "$DOTFILES_PUBLIC_DIR" ]]; then
+      print -Pru2 -- "%F{red}toggle-dotfiles: Error: \$DOTFILES_PUBLIC_DIR is not set.%f"
+      return 1
+    fi
+    export GIT_DIR="$DOTFILES_PUBLIC_DIR"
+    export GIT_WORK_TREE="$HOME"
+    print -P -- "%F{green}Dotfiles context set to: public ($GIT_DIR)%f"
+    ;;
+  private)
+    if [[ -z "$DOTFILES_PRIVATE_DIR" ]]; then
+      print -Pru2 -- "%F{red}toggle-dotfiles: Error: \$DOTFILES_PRIVATE_DIR is not set.%f"
+      return 1
+    fi
+    export GIT_DIR="$DOTFILES_PRIVATE_DIR"
+    export GIT_WORK_TREE="$HOME"
+    print -P -- "%F{blue}Dotfiles context set to: private ($GIT_DIR)%f"
+    ;;
+  '')
+    # Unset the variables
+    unset GIT_DIR
+    unset GIT_WORK_TREE
+    print -P -- "%F{yellow}Dotfiles context unset.%f"
+    ;;
+esac
 
-local f
-for f in precmd "${precmd_functions[@]}"; do
-  (( ${+functions[$f]} )) && "$f" &>/dev/null
-done
+# --- Update prompt if interactive ---
+# Check if ZLE is active (indicates interactive shell)
+if zle; then
+  # Run precmd hooks to allow prompt themes (like p10k) to react to the change.
+  # Suppress output/errors from hooks as they are internal mechanics.
+  local hook_func
+  # Ensure precmd itself runs if it's a function, plus functions in the array
+  for hook_func in precmd "${precmd_functions[@]}"; do
+    # Check if the function exists before trying to call it
+    (( ${+functions[$hook_func]} )) && "$hook_func" &>/dev/null
+  done
 
-if (( ${+functions[p10k]} )); then
-  p10k display -r
-else
-  zle .reset-prompt
+  # Trigger prompt redraw.
+  # Prefer p10k's specific redraw mechanism if the function exists.
+  if (( ${+functions[p10k]} )); then
+    p10k display -r
+  else
+    # Fallback to the standard ZLE prompt reset widget.
+    zle .reset-prompt
+  fi
 fi
+
+return 0 # Explicitly return success

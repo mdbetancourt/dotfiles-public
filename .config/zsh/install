@@ -1,78 +1,173 @@
 #!/bin/sh
 
-if '[' '-n' "${ZSH_VERSION-}" ']'; then
-  'emulate' 'sh' '-o' 'err_exit' '-o' 'no_unset'
+# Script to install dotfiles from a bare git repository.
+# Supports -y for non-interactive/quiet mode.
+
+# --- Configuration ---
+# Repository URL
+repo_url="https://github.com/mdbetancourt/dotfiles-public"
+# Directory to store the bare repository
+repo_dir="$HOME/.cfg/public"
+# Files in $HOME managed by this repository
+managed_files="$HOME/.zshrc $HOME/.zshenv $HOME/.p10k.zsh"
+
+# --- Options ---
+QUIET=0
+# Parse options
+while getopts "yf" opt; do
+  case $opt in
+    y) QUIET=1 ;;
+    f) ;; # -f (force) is accepted but currently ignored, as the script always forces.
+    \?) >&2 echo "Usage: $0 [-y]" ; exit 1 ;;
+  esac
+done
+shift $((OPTIND-1))
+
+# --- Shell Setup ---
+# Use stricter settings (exit on error, error on unset variables)
+# Handle both standard sh and zsh running in sh emulation mode
+if [ -n "${ZSH_VERSION-}" ]; then
+  emulate sh -o err_exit -o no_unset
 else
-  'set' '-ue'
+  # Ensure HOME is set before nounset, default if necessary (though checked later)
+  : "${HOME?\$HOME is not set}"
+  set -ue
 fi
 
-platform="$('command' 'uname' '-sm')"
-platform="$('printf' '%s' "$platform" | 'command' 'tr' '[A-Z]' '[a-z]')"
+# --- Helper Functions ---
+log_info() {
+  if [ "$QUIET" -eq 0 ]; then
+    printf '\033[33mz4h\033[0m: %s\n' "$1"
+  fi
+}
 
+log_error() {
+  >&2 printf '\033[33mz4h\033[0m: \033[31mERROR:\033[0m %s\n' "$1"
+}
+
+# --- Pre-flight Checks ---
+log_info "Starting dotfiles installation..."
+
+# Platform Check (inherited from z4h, kept for compatibility)
+platform="$(command uname -sm)"
+platform="$(printf '%s' "$platform" | command tr '[A-Z]' '[a-z]')"
 case "$platform" in
-  'darwin arm64');;
-  'darwin x86_64');;
-  'linux aarch64');;
-  'linux armv6l');;
-  'linux armv7l');;
-  'linux armv8l');;
-  'linux x86_64');;
-  'linux i686');;
+  'darwin arm64'|'darwin x86_64'|'linux aarch64'|'linux armv6l'|'linux armv7l'|'linux armv8l'|'linux x86_64'|'linux i686')
+    ;; # Supported
   *)
-    >&2 'printf' '\033[33mz4h\033[0m: sorry, unsupported platform: \033[31m%s\033[0m\n' "$platform"
-    'exit' '1'
+    log_error "Sorry, unsupported platform: $platform"
+    exit 1
   ;;
 esac
+log_info "Platform check passed: $platform"
 
-if command -v 'curl' >'/dev/null' 2>&1; then
-  fetch='command curl -fsSLo'
-elif command -v 'wget' >'/dev/null' 2>&1; then
-  fetch='command wget -O'
+# Dependency Check: curl or wget (Needed by z4h bootstrap sourced later)
+if command -v curl >/dev/null 2>&1; then
+  fetch='command curl -fsSLo' # Used by z4h
+elif command -v wget >/dev/null 2>&1; then
+  fetch='command wget -O' # Used by z4h
 else
-  >&2 'printf' '\033[33mz4h\033[0m: please install \033[32mcurl\033[0m or \033[32mwget\033[0m\n'
-  'exit' '1'
+  log_error "Please install 'curl' or 'wget'"
+  exit 1
 fi
 
-if ! command -v 'git' >'/dev/null' 2>&1; then
-  >&2 'printf' '\033[33mz4h\033[0m: please install \033[32mgit\033[0m\n'
-  'exit' '1'
+# Dependency Check: git
+if ! command -v git >/dev/null 2>&1; then
+  log_error "Please install 'git'"
+  exit 1
+fi
+log_info "Dependency check passed (git found)."
+
+# Sanity Check: $HOME directory
+if [ ! -d "$HOME" ]; then
+  log_error "\$HOME ('$HOME') is not a directory"
+  exit 1
 fi
 
-if '[' '!' '-d' "${HOME-}" ']'; then
-  >&2 'printf' '\033[33mz4h\033[0m: \033[1m$HOME\033[0m is not a directory\n'
-  'exit' '1'
-fi
-
-euid="$('command' 'id' '-u')"
-if '[' "$euid" '=' '0' ']'; then
-  home_ls="$('command' 'ls' '-ld' '--' "$HOME")"
-  home_owner="$('printf' '%s\n' "$home_ls" | 'command' 'awk' 'NR==1 {print $3}')"
-  if '[' "$home_owner" '!=' 'root' ']'; then
-    >&2 'printf' '\033[33mz4h\033[0m: please retry without \033[4;32msudo\033[0m\n'
-    'exit' '1'
+# Sanity Check: Running as root with non-root $HOME (Skip if quiet/non-interactive)
+if [ "$QUIET" -eq 0 ]; then
+  euid="$(command id -u)"
+  if [ "$euid" = '0' ]; then
+    # Use stat if available (more reliable)
+    if command -v stat >/dev/null 2>&1; then
+        home_uid="$(stat -c '%u' -- "$HOME")"
+        # Check if stat returned a number
+        case "$home_uid" in
+            ''|*[!0-9]*) # Not a number, maybe permission error or non-standard stat? Warn but proceed.
+                 log_info "Warning: Could not determine owner UID for $HOME using stat. Skipping sudo check."
+                 ;;
+            '0') # Home owned by root, OK when running as root
+                 ;;
+            *)   # Home owned by non-root, not OK when running as root
+                 log_error "Running as root, but \$HOME ($HOME) is owned by UID $home_uid. Please retry without sudo."
+                 exit 1
+                 ;;
+        esac
+    else
+        # Fallback to ls/awk if stat is not available
+        home_ls="$(command ls -ld -- "$HOME")"
+        home_owner="$(printf '%s\n' "$home_ls" | command awk 'NR==1 {print $3}')"
+        if [ "$home_owner" != 'root' ]; then
+            log_error "Running as root, but \$HOME ($HOME) is owned by '$home_owner'. Please retry without sudo."
+            exit 1
+        fi
+    fi
   fi
 fi
+log_info "Sanity checks passed."
 
-# Repository directory
-repo_dir="$HOME/.cfg/public"
+# --- Installation Steps ---
 
-# Remove repository directory if it exists
-if [ -d "$repo_dir" ]; then
-    rm -rf "$repo_dir"
+# Remove existing bare repository directory if it exists
+log_info "Removing existing repository directory: $repo_dir"
+rm -rf -- "$repo_dir"
+
+# Clone the bare repository (quietly)
+log_info "Cloning bare repository from $repo_url to $repo_dir"
+if ! command git clone --quiet --bare "$repo_url" "$repo_dir"; then
+    log_error "Failed to clone repository '$repo_url'"
+    exit 1
 fi
 
-# Clone repository
-git clone --bare https://github.com/mdbetancourt/dotfiles-public "$repo_dir" >/dev/null 2>&1
+# Delete existing managed files from $HOME to avoid conflicts (e.g., old symlinks)
+log_info "Removing potentially conflicting files: $managed_files"
+# Use xargs to handle potential spaces in filenames if $managed_files were more complex
+# Though for these specific files, direct rm is fine. Using rm directly for simplicity here.
+rm -f -- $managed_files 2>/dev/null # Suppress "No such file" errors
 
-# Delete existing zsh files (if they exist)
-rm -f $HOME/{.zshrc,.zshenv,.p10k.zsh} 2>/dev/null
+# Checkout files from the bare repository into $HOME (force overwrite)
+log_info "Checking out files into $HOME"
+if ! command git --work-tree="$HOME" --git-dir="$repo_dir" checkout -f; then
+     log_error "Failed to checkout files from repository to $HOME"
+     # Consider cleaning up $repo_dir? For now, leave it for debugging.
+     exit 1
+fi
 
-# Checkout files (force overwrite and suppress output)
-git --work-tree=$HOME --git-dir="$repo_dir" checkout -f >/dev/null 2>&1
+log_info "Dotfiles checked out successfully."
 
-# Bootstrap zsh
+# --- Zsh Bootstrap ---
+# Set flag for zsh4humans initialization process
 Z4H_BOOTSTRAPPING=1
 
-'set' '+ue'
-'set' '--'
-'.' $HOME/'.zshenv'
+# Unset strict shell options before sourcing user configuration files
+if [ -n "${ZSH_VERSION-}" ]; then
+  emulate -L zsh # Restore zsh default options
+else
+  set +ue
+fi
+# set -- # Clear positional parameters (optional, likely harmless)
+
+# Source .zshenv to complete the setup (e.g., trigger z4h initialization)
+if [ -f "$HOME/.zshenv" ]; then
+    log_info "Sourcing $HOME/.zshenv to finalize setup..."
+    # shellcheck source=/dev/null # Tell shellcheck we know this file exists conditionally
+    . "$HOME/.zshenv"
+else
+    # This would be unusual if the checkout succeeded and .zshenv is in the repo
+    log_error "WARNING: $HOME/.zshenv not found after checkout. Setup might be incomplete."
+    # Decide whether to exit or continue. Let's continue but warn.
+fi
+
+log_info "Installation complete. Please start a new zsh shell."
+
+exit 0
