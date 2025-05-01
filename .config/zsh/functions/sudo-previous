@@ -1,13 +1,21 @@
+# If the buffer is empty, load the last executed command from history.
 if [[ -z "$BUFFER" ]]; then
-  zle up-history         # If there is no text use last executed command
-fi
-
-if [[ "$BUFFER" == sudo\ * ]]; then
+  zle up-history
+# If the buffer contains exactly 'sudo', clear the buffer.
+# This prevents 'sudo' from becoming 'sudo sudo'.
+elif [[ "$BUFFER" == sudo ]]; then
+  BUFFER=""
+  CURSOR=0
+# Check if the buffer already starts with 'sudo ' followed by something.
+elif [[ "$BUFFER" == sudo\ * ]]; then
+  # If it does, remove 'sudo ' from the beginning.
   BUFFER="${BUFFER:5}"
-  CURSOR=$CURSOR-5
+  # Adjust the cursor position. Subtract 5 because 'sudo ' was removed.
+  # Zsh automatically handles clamping the cursor to valid positions (0 to buffer length).
+  CURSOR=$((CURSOR - 5))
 else
+  # Otherwise, prepend 'sudo '.
   BUFFER="sudo $BUFFER"
-  CURSOR=$CURSOR+5
+  # Adjust the cursor position. Add 5 because 'sudo ' was added.
+  CURSOR=$((CURSOR + 5))
 fi
-
-
