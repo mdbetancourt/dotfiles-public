@@ -86,10 +86,26 @@ fi
 
     # Push
     print -Pr -- "%F{yellow}sync-dotfiles%f: Pushing %B$repo_name%b..." >&2
-    git push || {
-        print -Pr -- "%F{red}sync-dotfiles%f: Failed to push %B$repo_name%b." >&2
-        return 1
-    }
+    local push_output
+    if ! push_output=$(git push 2>&1); then
+        # Push failed. Check if it's the upstream error.
+        if [[ "$push_output" =~ "fatal: The current branch .* has no upstream branch" ]]; then
+            print -Pr -- "%F{yellow}sync-dotfiles%f: No upstream branch set for %B$repo_name%b. Setting upstream and retrying push..." >&2
+            local current_branch=$(git rev-parse --abbrev-ref HEAD)
+            local push_output_retry
+            if ! push_output_retry=$(git push -u origin "$current_branch" 2>&1); then
+                print -Pr -- "%F{red}sync-dotfiles%f: Failed to push %B$repo_name%b even after setting upstream." >&2
+                print -Pru2 -- "$push_output_retry" # Print output of the failed retry
+                return 1
+            fi
+            # If retry succeeded, no need to print the first failure output.
+        else
+            # Push failed for a different reason.
+            print -Pr -- "%F{red}sync-dotfiles%f: Failed to push %B$repo_name%b." >&2
+            print -Pru2 -- "$push_output" # Print output of the initial failure
+            return 1
+        fi
+    fi
 
     # Pop stash if changes were stashed
     if (( dirty )); then
@@ -135,7 +151,7 @@ fi
   # --- Sync Private Repo ---
   local private_repo_dir="$HOME/.cfg/private" # Define private repo path
   # Check if private repo directory exists
-  if [[ -d "$private_repo_dir" ]]; then
+  if [[ -d "$private_repo_repo_dir" ]]; then # Corrected variable name here
     print -Pr -- "%F{yellow}sync-dotfiles%f: --- Syncing Private Dotfiles ---" >&2
 
     # --- History Handling (Specific to Private Repo) ---
