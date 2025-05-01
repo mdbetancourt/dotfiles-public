@@ -1,87 +1,195 @@
-# This is a function because it needs to access HISTFILE.
+# This is a function because it needs to access HISTFILE and manage local state.
 
+# Use local options for the function
 emulate -L zsh -o no_unset -o no_prompt_subst -o prompt_percent -o pushd_silent
 
-local GIT_DIR GIT_WORK_TREE
-unset GIT_DIR GIT_WORK_TREE
-
+# Option parsing
 local merge=1 OPTIND OPTARG
 while getopts ":hm" opt; do
   case $opt in
-    *h)
+    h)
       print -r -- $'Usage: sync-dotfiles [{+|-}m]\nSynchronize local dotfiles with GitHub.'
       return 0
     ;;
     \?) print -r -- "sync-dotfiles: invalid option: $OPTARG" >&2;            return 1;;
     :)  print -r -- "sync-dotfiles: missing required argument: $OPTARG" >&2; return 1;;
-    m)  merge=0;;
-    +m) merge=1;;
+    m)  merge=0;; # -m means no merge upstream
+    +m) merge=1;; # +m means merge upstream (default)
   esac
 done
 
+# Check for unexpected positional arguments
 if (( OPTIND <= ARGC )); then
   print -r -- "sync-dotfiles: unexpected positional argument: ${*[OPTIND]}" >&2
   return 1
 fi
 
-function -sync-dotfiles-repo() {
-  local repo=${${GIT_DIR:t}#.} dirty=0 s
-  s="$(git status --porcelain --untracked-files=no --ignore-submodules=dirty)" || return
-  if [[ -n $s ]]; then
-    dirty=1
-    git stash || return
-  fi
-
-  print -Pr -- "%F{yellow}sync-dotfiles%f: pulling %B$repo%b" >&2
-  if ! git pull --rebase --no-recurse-submodules && ! git pull --no-edit --no-recurse-submodules; then
-    print -Pr -- "%F{red}sync-dotfiles%f: failed to pull %B$repo%b" >&2
-    git status || return
-    return 1
-  fi
-
-  if (( merge )) && git remote get-url upstream &>/dev/null; then
-    print -Pr -- "%F{yellow}sync-dotfiles%f: merging upstream %B$repo%b" >&2
-    git fetch upstream || return
-    if ! git merge --no-edit upstream/master; then
-      print -Pr -- "%F{red}sync-dotfiles%f: failed to merge upstream %B$repo%b" >&2
-      git status || return
-      return 1
-    fi
-  fi
-
-  print -Pr -- "%F{yellow}sync-dotfiles%f: pushing %B$repo%b" >&2
-  git push || return
-  if (( dirty )); then
-    git stash pop || return
-  fi
-
-  print -Pr -- "%F{yellow}sync-dotfiles%f: pulling submodules from %B$repo%b" >&2
-  git pull --recurse-submodules || return
-  git submodule update --init || return
-}
-
+# Main execution block with cleanup
 {
-  pushd -q ~ || return
-  local -x GIT_WORK_TREE=$HOME
-  local -x GIT_DIR=$DOTFILES_PUBLIC_DIR
-  -sync-dotfiles-repo || return
+  # Define a local helper function for syncing a single repository.
+  # This function operates on the repository path passed as an argument.
+  # It sets GIT_DIR and GIT_WORK_TREE locally for its execution.
+  local -a functions # Required for local function definition
+  function -sync-dotfiles-repo() {
+    local repo_path="$1"
+    local repo_name=${repo_path:t} # Get base name (e.g., public, private)
+    repo_name=${repo_name#.} # Remove leading dot if present
 
-  GIT_DIR=$HOME/.cfg/private
-  GIT_WORK_TREE=$HOME
+    # Set GIT_DIR and GIT_WORK_TREE locally for this function call
+    local -x GIT_DIR="$repo_path"
+    local -x GIT_WORK_TREE="$HOME" # Assuming work tree is always HOME
 
-  local hist=${HISTFOLDER:-~}/zsh_history.${(%):-%m}
-  local -U hist=($hist{,:*}(N))
-  [[ -f ${HISTFILE:-} ]] && hist+=($HISTFILE)
-  if (( $#hist )); then
-    git add -- $hist || return
-    local s
-    s="$(git status --porcelain -- $hist)" || return
+    local dirty=0 s
+
+    # Check for dirty status and stash
+    print -Pr -- "%F{yellow}sync-dotfiles%f: Checking status for %B$repo_name%b..." >&2
+    s="$(git status --porcelain --untracked-files=no --ignore-submodules=dirty)" || {
+        print -Pr -- "%F{red}sync-dotfiles%f: Failed to get git status for %B$repo_name%b." >&2
+        return 1
+    }
     if [[ -n $s ]]; then
-      git commit -m 'fresh history' -- $hist || return
+      dirty=1
+      print -Pr -- "%F{yellow}sync-dotfiles%f: Stashing changes in %B$repo_name%b..." >&2
+      git stash || {
+          print -Pr -- "%F{red}sync-dotfiles%f: Failed to stash changes in %B$repo_name%b." >&2
+          return 1
+      }
     fi
+
+    # Pull (rebase then merge fallback)
+    print -Pr -- "%F{yellow}sync-dotfiles%f: Pulling %B$repo_name%b (rebase)..." >&2
+    if ! git pull --rebase --no-recurse-submodules; then
+      print -Pr -- "%F{yellow}sync-dotfiles%f: Rebase pull failed for %B$repo_name%b. Trying merge pull..." >&2
+      if ! git pull --no-edit --no-recurse-submodules; then
+        print -Pr -- "%F{red}sync-dotfiles%f: Failed to pull %B$repo_name%b (merge fallback)." >&2
+        # Use explicit --git-dir and --work-tree for status after failure
+        git --git-dir="$GIT_DIR" --work-tree="$GIT_WORK_TREE" status || print -Pru2 -- "%F{red}sync-dotfiles%f: Failed to get status after pull failure."
+        return 1
+      fi
+    fi
+
+    # Merge upstream if configured and merge option is enabled
+    if (( merge )) && git remote get-url upstream &>/dev/null; then
+      print -Pr -- "%F{yellow}sync-dotfiles%f: Fetching upstream for %B$repo_name%b..." >&2
+      git fetch upstream || {
+          print -Pr -- "%F{red}sync-dotfiles%f: Failed to fetch upstream for %B$repo_name%b." >&2
+          return 1
+      }
+      print -Pr -- "%F{yellow}sync-dotfiles%f: Merging upstream/master into %B$repo_name%b..." >&2
+      if ! git merge --no-edit upstream/master; then
+        print -Pr -- "%F{red}sync-dotfiles%f: Failed to merge upstream/master into %B$repo_name%b." >&2
+        # Use explicit --git-dir and --work-tree for status after failure
+        git --git-dir="$GIT_DIR" --work-tree="$GIT_WORK_TREE" status || print -Pru2 -- "%F{red}sync-dotfiles%f: Failed to get status after merge failure."
+        return 1
+      fi
+    fi
+
+    # Push
+    print -Pr -- "%F{yellow}sync-dotfiles%f: Pushing %B$repo_name%b..." >&2
+    git push || {
+        print -Pr -- "%F{red}sync-dotfiles%f: Failed to push %B$repo_name%b." >&2
+        return 1
+    }
+
+    # Pop stash if changes were stashed
+    if (( dirty )); then
+      print -Pr -- "%F{yellow}sync-dotfiles%f: Popping stash for %B$repo_name%b..." >&2
+      git stash pop || {
+          print -Pr -- "%F{red}sync-dotfiles%f: Failed to pop stash for %B$repo_name%b." >&2
+          # Consider advising manual stash pop?
+          return 1
+      }
+    fi
+
+    # Pull and update submodules
+    print -Pr -- "%F{yellow}sync-dotfiles%f: Pulling submodules for %B$repo_name%b..." >&2
+    git pull --recurse-submodules || {
+        print -Pr -- "%F{red}sync-dotfiles%f: Failed to pull submodules for %B$repo_name%b." >&2
+        return 1
+    }
+    print -Pr -- "%F{yellow}sync-dotfiles%f: Updating submodules for %B$repo_name%b..." >&2
+    git submodule update --init || {
+        print -Pr -- "%F{red}sync-dotfiles%f: Failed to update submodules for %B$repo_name%b." >&2
+        return 1
+    }
+
+    print -Pr -- "%F{green}sync-dotfiles%f: Successfully synced %B$repo_name%b." >&2
+    return 0 # Explicit success
+  }
+
+  # Change to HOME directory for git operations
+  pushd -q ~ || {
+      print -Pru2 -- "%F{red}sync-dotfiles%f: Failed to change directory to $HOME." >&2
+      return 1
+  }
+
+  # --- Sync Public Repo ---
+  # Check if public repo directory is set and exists
+  if [[ -n "$DOTFILES_PUBLIC_DIR" && -d "$DOTFILES_PUBLIC_DIR" ]]; then
+    print -Pr -- "%F{yellow}sync-dotfiles%f: --- Syncing Public Dotfiles ---" >&2
+    -sync-dotfiles-repo "$DOTFILES_PUBLIC_DIR" || return
+  else
+    print -Pru2 -- "%F{yellow}sync-dotfiles%f: Warning: \$DOTFILES_PUBLIC_DIR is not set or directory '$DOTFILES_PUBLIC_DIR' not found. Skipping public repo sync."
   fi
-  -sync-dotfiles-repo dotfiles-private || return
+
+  # --- Sync Private Repo ---
+  local private_repo_dir="$HOME/.cfg/private" # Define private repo path
+  # Check if private repo directory exists
+  if [[ -d "$private_repo_dir" ]]; then
+    print -Pr -- "%F{yellow}sync-dotfiles%f: --- Syncing Private Dotfiles ---" >&2
+
+    # --- History Handling (Specific to Private Repo) ---
+    # Find relevant history files.
+    # This glob finds history files like zsh_history.hostname and zsh_history.hostname:*
+    # (N) glob qualifier makes it expand to nothing if no files match.
+    local hist_files=()
+    local hist_pattern=${HISTFOLDER:-~}/zsh_history.${(%):-%m}
+    hist_files=($hist_pattern{,:*}(N))
+    # Add the main HISTFILE if it exists and isn't already included
+    if [[ -f ${HISTFILE:-} ]]; then
+        # Use -U to add uniquely (Zsh array union)
+        hist_files=( ${^hist_files} ${^HISTFILE} )
+    fi
+
+    if (( $#hist_files )); then
+      print -Pr -- "%F{yellow}sync-dotfiles%f: Adding history files to private repo: %B${(j:, :)hist_files}%b" >&2
+      # Use explicit --git-dir and --work-tree for history operations
+      if ! git --git-dir="$private_repo_dir" --work-tree="$HOME" add -- $hist_files; then
+          print -Pr -- "%F{red}sync-dotfiles%f: Failed to add history files to private repo." >&2
+          return 1
+      fi
+
+      local s
+      s="$(git --git-dir="$private_repo_dir" --work-tree="$HOME" status --porcelain -- $hist_files)" || {
+          print -Pr -- "%F{red}sync-dotfiles%f: Failed to get status of history files in private repo." >&2
+          return 1
+      }
+      if [[ -n $s ]]; then
+        print -Pr -- "%F{yellow}sync-dotfiles%f: Committing history changes in private repo." >&2
+        # Commit history changes
+        if ! git --git-dir="$private_repo_dir" --work-tree="$HOME" commit -m 'fresh history' -- $hist_files; then
+            print -Pr -- "%F{red}sync-dotfiles%f: Failed to commit history changes in private repo." >&2
+            return 1
+        fi
+      else
+         print -Pr -- "%F{yellow}sync-dotfiles%f: No history changes to commit in private repo." >&2
+      fi
+    else
+       print -Pru2 -- "%F{yellow}sync-dotfiles%f: Warning: No history files found matching pattern '${hist_pattern}{,:*}(N)' or \$HISTFILE to manage in private repo."
+    fi
+    # --- End History Handling ---
+
+    # Sync the private repo itself
+    -sync-dotfiles-repo "$private_repo_dir" || return
+  else
+    print -Pru2 -- "%F{yellow}sync-dotfiles%f: Warning: Private dotfiles directory '$private_repo_dir' not found. Skipping private repo sync."
+  fi
+
 } always {
+  # Cleanup: Unset the local helper function and pop the directory stack
   unset -f -- -sync-dotfiles-repo
   popd -q
 }
+
+# Return the exit status of the last command in the block
+return $?
