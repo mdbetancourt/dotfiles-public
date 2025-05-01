@@ -108,14 +108,14 @@ if zle; then
   # Print the message *after* the prompt redraw.
   # This should place the message below the newly drawn prompt,
   # preventing it from being immediately overwritten.
-  if [[ -n "$message" ]]; then
-    print -P -- "$message"
-  fi
+  # if [[ -n "$message" ]]; then
+  #   print -P -- "$message"
+  # fi
 else
   # Not in ZLE (e.g., script execution), print message immediately.
-  if [[ -n "$message" ]]; then
-    print -P -- "$message"
-  fi
+  # if [[ -n "$message" ]]; then
+  #   print -P -- "$message"
+  # fi
 fi
 
 return 0 # Explicitly return success
