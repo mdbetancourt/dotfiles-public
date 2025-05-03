@@ -47,7 +47,7 @@ export SAVEHIST=$HISTSIZE
 
 # --- Path Configuration ---
 # Add common user binary directories to PATH
-path+=(~/.bin ~/.local/bin $ZDOTDIR/bin)
+path+=(~/.bin ~/.apps/ ~/.local/bin $ZDOTDIR/bin)
 
 # --- z4h Initialization and Plugin Management ---
 # Install z4h plugins (if not already installed)
@@ -74,9 +74,12 @@ zstyle ':z4h:' auto-update-days 28      # Check for updates every 28 days
 zstyle ':z4h:*' channel dev             # Use the 'dev' channel for most plugins
 zstyle ':z4h:zsh-syntax-highlighting' channel stable # Use 'stable' for syntax highlighting
 
-# Autosuggestion configuration
+# Autosuggestion configuration (from zsh-autosuggestions, usually managed by z4h)
+# Note: This provides history-based suggestions, not AI suggestions.
 zstyle ':z4h:autosuggestions' forward-char partial-accept # Accept suggestion partially when moving forward
 zstyle ':z4h:autosuggestions' end-of-line partial-accept   # Accept suggestion partially at end of line
+# To get AI suggestions, a different mechanism (like the Ctrl+A binding below) is needed,
+# as real-time AI suggestions on every keystroke are generally too slow.
 
 # FZF integration configuration
 zstyle ':z4h:fzf-complete' recurse-dirs no # Don't recurse into subdirectories for fzf completion
@@ -165,6 +168,22 @@ zstyle ':zle:down-line-or-beginning-search' leave-cursor no # Don't leave cursor
   done
 }
 
+# Bindings for sudo history commands
+zle -N sudo-previous # Edit the previous command prepended with sudo
+zle -N sudo-escalate # Edit the current command prepended with sudo
+
+# Function to send current buffer + context to llm via Ctrl+A for suggestion/completion
+# Note: This provides on-demand AI suggestions, not real-time suggestions while typing.
+
+# Register the function as a ZLE widget
+zle -N call-llm
+
+# Binding for toggle-dotfiles function (if it exists)
+if (( $+functions[toggle-dotfiles] )); then
+  zle -N toggle-dotfiles
+  z4h bindkey toggle-dotfiles Ctrl+P
+fi
+
 # Define custom key bindings using z4h helper
 z4h bindkey z4h-backward-kill-word  Ctrl+Backspace
 z4h bindkey z4h-backward-kill-zword Ctrl+Alt+Backspace
@@ -178,18 +197,10 @@ z4h bindkey push-input              Ctrl+Q             # Push current input onto
 z4h bindkey copy-prev-shell-word    Alt+C              # Copy the last word of the previous command
 z4h bindkey undo Ctrl+/ Shift+Tab                      # Undo the last command line change
 z4h bindkey redo Alt+/                                 # Redo the last undone command line change
+z4h bindkey sudo-previous Ctrl+E                       # Bind Ctrl+E to sudo-previous
+z4h bindkey call-llm Ctrl+A     # Send current buffer + context to llm for suggestion
 # z4h bindkey run-help Ctrl+H                          # Example commented out binding
 
-# Bindings for sudo history commands
-zle -N sudo-previous # Edit the previous command prepended with sudo
-zle -N sudo-escalate # Edit the current command prepended with sudo
-z4h bindkey sudo-previous Ctrl+E
-
-# Binding for toggle-dotfiles function (if it exists)
-if (( $+functions[toggle-dotfiles] )); then
-  zle -N toggle-dotfiles
-  z4h bindkey toggle-dotfiles Ctrl+P
-fi
 
 # Function to skip CSI sequences (often used with terminal passthrough)
 function skip-csi-sequence() {
